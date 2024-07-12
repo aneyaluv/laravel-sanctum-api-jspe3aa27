@@ -15,26 +15,46 @@ class CommentController extends Controller
             'post_id' => 'required|exists:posts,id',
             'body' => 'required|string',
         ]);
+
         $comment = Comment::create([
             'post_id' => $request->post_id,
             'user_id' => auth()->id(),
             'body' => $request->body,
         ]);
-        return response()->json($comment, 201);
+
+        if ($request->expectsJson()) {
+            return response()->json($comment, 201);
+        } else {
+            return redirect()->back()->with('status', 'Comment added successfully.');
+        }
     }
+
     public function update(Request $request, Comment $comment)
     {
         Gate::authorize('update', $comment);
+
         $request->validate([
             'body' => 'sometimes|string',
         ]);
+
         $comment->update($request->only('body'));
-        return response()->json($comment);
+
+        if ($request->expectsJson()) {
+            return response()->json($comment);
+        } else {
+            return redirect()->back()->with('status', 'Comment updated successfully.');
+        }
     }
-    public function destroy(Comment $comment)
+
+    public function destroy(Request $request, Comment $comment)
     {
         Gate::authorize('delete', $comment);
         $comment->delete();
-        return response()->json(null, 204);
+
+        if ($request->expectsJson()) {
+            return response()->json(null, 204);
+        } else {
+            return redirect()->back()->with('status', 'Comment deleted successfully.');
+        }
     }
 }

@@ -14,14 +14,17 @@ class AuthController extends Controller
     {
         return view('register');
     }
+
     public function showLoginForm()
     {
         return view('login');
     }
+
     public function showLogoutForm()
     {
         return view('logout');
     }
+
     public function register(Request $request)
     {
         $request->validate([
@@ -39,6 +42,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
         return response()->json(['token' => $token], 201);
     }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -57,17 +61,30 @@ class AuthController extends Controller
         $user = $request->user();
         $tokenResult = $user->createToken('Personal Access Token');
         $token = $tokenResult->plainTextToken;
-        return response()->json([
-            'accessToken' => $token,
-            'token_type' => 'Bearer',
-        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'accessToken' => $token,
+                'token_type' => 'Bearer',
+            ]);
+        } else {
+            $request->session()->regenerate();
+            return redirect()->intended('/posts');  // Redirect to posts page
+        }
     }
+
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
-
-        return response()->json([
-            'message' => 'Successfully logged out'
-        ]);
+        if ($request->expectsJson()) {
+            $request->user()->tokens()->delete();
+            return response()->json([
+                'message' => 'Successfully logged out'
+            ]);
+        } else {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/login');
+        }
     }
 }

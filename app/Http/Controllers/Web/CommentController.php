@@ -20,8 +20,9 @@ class CommentController extends Controller
             'user_id' => auth()->id(),
             'body' => $request->body,
         ]);
-        return response()->json($comment, 201);
+        return redirect()->route('posts.index');
     }
+
     public function update(Request $request, Comment $comment)
     {
         Gate::authorize('update', $comment);
@@ -31,10 +32,11 @@ class CommentController extends Controller
         $comment->update($request->only('body'));
         return response()->json($comment);
     }
+
     public function destroy(Comment $comment)
     {
         Gate::authorize('delete', $comment);
         $comment->delete();
-        return response()->json(null, 204);
+        return redirect()->route('posts.index');
     }
 }

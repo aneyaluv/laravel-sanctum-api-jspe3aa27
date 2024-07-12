@@ -11,8 +11,10 @@ class PostController extends Controller
 {
     public function index()
     {
-        return Post::with('user', 'comments')->get();
+        $posts = Post::with('user', 'comments.user')->get();
+        return view('posts.index', compact('posts'));
     }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -24,12 +26,14 @@ class PostController extends Controller
             'title' => $request->title,
             'body' => $request->body,
         ]);
-        return response()->json($post, 201);
+        return redirect()->route('posts.index');
     }
+
     public function show(Post $post)
     {
         return $post->load('user', 'comments');
     }
+
     public function update(Request $request, Post $post)
     {
         Gate::authorize('update', $post);
@@ -40,10 +44,11 @@ class PostController extends Controller
         $post->update($request->only('title', 'body'));
         return response()->json($post);
     }
+
     public function destroy(Post $post)
     {
         Gate::authorize('delete', $post);
         $post->delete();
-        return response()->json(null, 204);
+        return redirect()->route('posts.index');
     }
 }

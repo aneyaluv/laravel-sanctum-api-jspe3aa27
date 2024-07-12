@@ -14,14 +14,17 @@ class AuthController extends Controller
     {
         return view('register');
     }
+
     public function showLoginForm()
     {
         return view('login');
     }
+
     public function showLogoutForm()
     {
         return view('logout');
     }
+
     public function register(Request $request)
     {
         $request->validate([
@@ -37,9 +40,14 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
-        // return redirect('/login');
-        return response()->json(['token' => $token], 201);
+
+        if ($request->expectsJson()) {
+            return response()->json(['token' => $token], 201);
+        } else {
+            return redirect()->route('web.login')->with('status', 'Registration successful. Please log in.');
+        }
     }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -48,27 +56,46 @@ class AuthController extends Controller
             'remember_me' => 'boolean'
         ]);
 
-        $credentials = request(['email', 'password']);
+        $credentials = $request->only('email', 'password');
         if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 401);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unauthorized'
+                ], 401);
+            } else {
+                return back()->withErrors([
+                    'email' => 'The provided credentials do not match our records.',
+                ]);
+            }
         }
 
         $user = $request->user();
         $tokenResult = $user->createToken('Personal Access Token');
         $token = $tokenResult->plainTextToken;
-        return response()->json([
-            'accessToken' => $token,
-            'token_type' => 'Bearer',
-        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'accessToken' => $token,
+                'token_type' => 'Bearer',
+            ]);
+        } else {
+            $request->session()->regenerate();
+            return redirect()->intended('/posts');
+        }
     }
+
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
-
-        return response()->json([
-            'message' => 'Successfully logged out'
-        ]);
+        if ($request->expectsJson()) {
+            $request->user()->tokens()->delete();
+            return response()->json([
+                'message' => 'Successfully logged out'
+            ]);
+        } else {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/login');
+        }
     }
 }

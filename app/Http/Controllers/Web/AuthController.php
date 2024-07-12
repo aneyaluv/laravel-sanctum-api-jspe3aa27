@@ -37,7 +37,6 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
-        // return redirect('/login');
         return response()->json(['token' => $token], 201);
     }
     public function login(Request $request)
